@@ -739,7 +739,7 @@ const Products = () => {
                     min: { value: 0, message: 'Amount cannot be negative' }
                   })}
                   type="number"
-                  step="0.01"
+                  step="1"
                   className="w-full px-3 py-2 border rounded-lg"
                   placeholder="e.g., 3"
                 />

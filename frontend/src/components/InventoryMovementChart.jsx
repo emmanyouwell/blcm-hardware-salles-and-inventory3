@@ -20,8 +20,8 @@ const MOVEMENT_TYPES = [
   { value: 'SALE', label: 'Sales (Stock Out)' },
   { value: 'RESTOCK', label: 'Restock (Stock In)' },
   { value: 'RETURN', label: 'Returns (Stock In)' },
-  { value: 'WASTAGE', label: 'Wastage / Spoilage' },
-  { value: 'ADJUSTMENT', label: 'Manual Adjustments' },
+  // { value: 'WASTAGE', label: 'Wastage / Spoilage' },
+  // { value: 'ADJUSTMENT', label: 'Manual Adjustments' },
 ];
 
 const formatLocalDate = (date) => {
