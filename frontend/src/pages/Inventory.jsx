@@ -25,13 +25,13 @@ const Inventory = () => {
   const [sortOrder, setSortOrder] = useState('desc');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  
+
   // Combined form state
   const [stockQuantity, setStockQuantity] = useState('');
   const [dateDelivered, setDateDelivered] = useState('');
   const [price, setPrice] = useState('');
   const [markupPercentage, setMarkupPercentage] = useState('');
-  
+
   // Determine if user can update stock
   const canUpdateStock = isAdmin;
 
@@ -72,7 +72,13 @@ const Inventory = () => {
       if (endDate) params.append('endDate', endDate);
 
       const response = await axios.get(`/inventory/stock-history?${params.toString()}`);
-      setStockHistory(response.data.data);
+      const transactions = response.data.data || [];
+
+      // Filter out items with no transactionId
+      const filtered = transactions.filter(item => item.transactionId);
+
+      // Then set the state
+      setStockHistory(filtered);
     } catch (error) {
       // Error handled by axios interceptor
     } finally {
@@ -86,7 +92,7 @@ const Inventory = () => {
       const updates = [];
       // Update price if price or markupPercentage is provided
       if (price || markupPercentage) {
-        await axios.put(`/inventory/${productId}/price`, { 
+        await axios.put(`/inventory/${productId}/price`, {
           price: price ? parseFloat(price) : undefined,
           markupPercentage: markupPercentage ? parseFloat(markupPercentage) : undefined
         });
@@ -94,22 +100,22 @@ const Inventory = () => {
       }
       // Update stock if quantity and date are provided
       if (quantity && dateDelivered) {
-        await axios.put(`/inventory/${productId}/stock`, { 
+        await axios.put(`/inventory/${productId}/stock`, {
           quantity: parseInt(quantity),
-          dateDelivered 
+          dateDelivered
         });
         updates.push('stock');
       }
-      
-      
-      
+
+
+
       if (updates.length > 0) {
         const messages = [];
         if (updates.includes('stock')) messages.push('Stock added');
         if (updates.includes('price')) messages.push('Price updated');
         toast.success(messages.join(' and ') + ' successfully');
       }
-      
+
       setIsEditModalOpen(false);
       setSelectedProduct(null);
       setStockQuantity('');
@@ -146,19 +152,19 @@ const Inventory = () => {
 
   const handleEditSubmit = () => {
     if (!selectedProduct) return;
-    
+
     // Validate stock inputs if provided
     if (stockQuantity || dateDelivered) {
       if (!stockQuantity || !dateDelivered) {
         toast.error('Please provide both stock quantity and date delivered');
         return;
       }
-      
+
       if (isNaN(stockQuantity) || parseInt(stockQuantity) <= 0) {
         toast.error('Please enter a valid stock quantity');
         return;
       }
-      
+
       // Check if base price and markup percentage are set before adding stock
       const currentPrice = price || selectedProduct.price;
       const currentMarkupPercentage = markupPercentage !== '' ? markupPercentage : selectedProduct.markupPercentage;
@@ -167,7 +173,7 @@ const Inventory = () => {
         return;
       }
     }
-    
+
     // Validate price inputs if provided
     if (price && (isNaN(price) || parseFloat(price) < 0)) {
       toast.error('Please enter a valid price');
@@ -177,21 +183,21 @@ const Inventory = () => {
       toast.error('Please enter a valid markup percentage (0-100)');
       return;
     }
-    
+
     // Check if at least one field is being updated
     const hasStockUpdate = stockQuantity && dateDelivered;
     const hasPriceUpdate = price || markupPercentage;
-    
+
     if (!hasStockUpdate && !hasPriceUpdate) {
       toast.error('Please fill in at least one field to update');
       return;
     }
-    
+
     updateProduct(
-      selectedProduct._id, 
-      stockQuantity, 
-      dateDelivered, 
-      price, 
+      selectedProduct._id,
+      stockQuantity,
+      dateDelivered,
+      price,
       markupPercentage
     );
   };
@@ -199,19 +205,19 @@ const Inventory = () => {
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     });
   };
 
   const formatDateTime = (dateString) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
-    return date.toLocaleString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
@@ -245,21 +251,19 @@ const Inventory = () => {
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('inventory')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'inventory'
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'inventory'
                 ? 'border-blue-500 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
+              }`}
           >
             Inventory
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'history'
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'history'
                 ? 'border-blue-500 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
+              }`}
           >
             Stock History
           </button>
@@ -320,7 +324,7 @@ const Inventory = () => {
                       const basePrice = product.price || 0;
                       const markupPercentage = product.markupPercentage || 0;
                       const totalPrice = basePrice + (basePrice * (markupPercentage / 100));
-                      
+
                       return (
                         <tr key={product._id}>
                           <td className="px-6 py-4 whitespace-nowrap font-semibold">{product.name}</td>
@@ -328,9 +332,8 @@ const Inventory = () => {
                           <td className="px-6 py-4 whitespace-nowrap">
                             ₱{totalPrice.toFixed(2)}
                           </td>
-                          <td className={`px-6 py-4 whitespace-nowrap font-semibold ${
-                            isOutOfStock ? 'text-red-600' : isLowStock ? 'text-orange-600' : ''
-                          }`}>
+                          <td className={`px-6 py-4 whitespace-nowrap font-semibold ${isOutOfStock ? 'text-red-600' : isLowStock ? 'text-orange-600' : ''
+                            }`}>
                             {product.stockQuantity}
                           </td>
                           {isAdmin && (
@@ -377,8 +380,8 @@ const Inventory = () => {
                 </tbody>
               </table>
             </div>
-            <Pagination 
-              data={inventory} 
+            <Pagination
+              data={inventory}
               itemsPerPage={10}
               onPageChange={setPaginatedInventory}
             />
@@ -489,8 +492,8 @@ const Inventory = () => {
                   </tbody>
                 </table>
               </div>
-              <Pagination 
-                data={stockHistory} 
+              <Pagination
+                data={stockHistory}
                 itemsPerPage={10}
                 onPageChange={setPaginatedStockHistory}
               />
@@ -501,11 +504,11 @@ const Inventory = () => {
 
       {/* Edit Product Modal */}
       {isEditModalOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
         >
-          <div 
-            className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto" 
+          <div
+            className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center space-x-4 mb-4">
@@ -514,15 +517,15 @@ const Inventory = () => {
                 <h3 className="text-xl font-bold text-gray-900">Edit Product</h3>
               </div>
             </div>
-            
+
             <p className="text-gray-600 mb-6">
               Update stock and/or price for {selectedProduct?.name || 'this product'}
             </p>
-            
+
             {/* Stock Section */}
             <div className="mb-6 pb-6 border-b border-gray-200">
               <h4 className="text-sm font-semibold text-gray-700 mb-4">Stock Information</h4>
-              
+
               {/* Price validation warning for stock */}
               {selectedProduct && !hasValidPrices(selectedProduct) && (
                 <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
@@ -531,7 +534,7 @@ const Inventory = () => {
                   </p>
                 </div>
               )}
-              
+
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Stock Quantity
@@ -558,11 +561,11 @@ const Inventory = () => {
                 />
               </div>
             </div>
-            
+
             {/* Price Section */}
             <div className="mb-6">
               <h4 className="text-sm font-semibold text-gray-700 mb-4">Price Information</h4>
-              
+
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Base Price
@@ -597,7 +600,7 @@ const Inventory = () => {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex space-x-3 justify-end">
               <button
                 onClick={() => {
@@ -618,11 +621,10 @@ const Inventory = () => {
               <button
                 onClick={handleEditSubmit}
                 disabled={isUpdating}
-                className={`px-4 py-2 rounded-lg transition-colors font-medium ${
-                  isUpdating
+                className={`px-4 py-2 rounded-lg transition-colors font-medium ${isUpdating
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-blue-600 hover:bg-blue-700 text-white'
-                }`}
+                  }`}
               >
                 {isUpdating ? 'Updating...' : 'Update'}
               </button>
